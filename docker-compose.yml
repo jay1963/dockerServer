@@ -1,0 +1,64 @@
+version: '2'
+services:
+  console:
+    build:
+      context: ./images/console
+      dockerfile: DockerFile
+    volumes_from:
+      - php
+    tty: true
+    networks:
+      - backend
+  nginx:
+    image: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - php
+    volumes_from:
+      - php
+    volumes:
+      - ./images/nginx/config:/etc/nginx/conf.d
+    networks:
+      backend:
+        ipv4_address: 172.19.0.11
+  php:
+    build:
+      context: ./images/php
+      dockerfile: DockerFile
+    volumes:
+      - /jimmy/git-project:/var/www/html
+    extra_hosts:
+      - 'iwms.dev: 172.19.0.11'
+      - 'imaster.dev: 172.19.0.11'
+    networks:
+      backend:
+        ipv4_address: 172.19.0.13
+  db:
+    build:
+      context: ./images/mysql
+      dockerfile: DockerFile
+    environment:
+      MYSQL_DATABASE: "default"
+      MYSQL_USER: "default"
+      MYSQL_PASSWORD: "secrect"
+      MYSQL_ROOT_PASSWORD: "Gao@1963"
+    ports:
+      - "3306:3306"
+    volumes:
+      - /jimmy/git-project/data/mysql:/var/lib/mysql
+      - ./image/mysql/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    networks:
+      - backend
+volumes:
+  db:
+    driver: local
+networks:
+  backend:
+    driver: "bridge"
+    ipam:
+      driver: default
+      config:
+          - subnet: 172.19.0.0/24
+            gateway: 172.19.0.21
